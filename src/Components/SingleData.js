@@ -1,84 +1,55 @@
+import React, { useState } from "react";
+import { toast } from "react-hot-toast";
+import { deleteData, editData } from "../apis/crudOperation";
+import { FaEdit, FaTrash } from "react-icons/fa";
 
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { toast, Toaster } from "react-hot-toast";
-import { saveData } from "./apis/crudOperation";
-import "./App.css";
-import UserData from "./Components/UserData";
+const SingleData = ({ userData, refetch }) => {
+  const [edit, setEdit] = useState(false);
+  const [updatedText, setUpdatedText] = useState("");
 
-
-function App() {
-  const [agree, setAgree] = useState(false);
-  const [sectors, setSectors] = useState("");
-
-  const loggedUserName = localStorage.getItem("name");
-
-  const {
-    isLoading,
-    error,
-    data: userData,
-    refetch,
-  } = useQuery({
-    queryKey: ["userData"],
-    queryFn: () =>
-      fetch(` https://user-data-server.vercel.app/userData?${loggedUserName}`).then((res) =>
-        res.json()
-      ),
-  });
-
-  if (isLoading) return "Loading...";
-
-  if (error) return "An error has occurred: " + error.message;
-
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const name = e.target.name.value;
-    const agreed = agree;
-    const userInfo = {
-      name,
-      sectors,
-      agreed,
-      createdTime: new Date(),
-    };
-    saveData(userInfo)
+  const handleDeleteData = (id) => {
+    deleteData(id)
       .then((data) => {
-        localStorage.setItem("name", name);
-
-        toast.success("your information stored.");
-
-        e.target.reset();
-        refetch()
+        refetch();
+        toast.success("Your data is deleted.");
       })
-      .catch((error) => toast.error(error.message));
+      .catch((err) => toast.error(err.message));
   };
+
+  const handleEdit = (id) => {
+    editData(id, updatedText)
+      .then((data) => {
+        toast.success("Your data updated.");
+        setEdit(false);
+        refetch();
+      })
+      .catch((error) => {
+        setEdit(false);
+        toast.error(error.message);
+      });
+  };
+
   return (
-    <div>
-      <div className="my-10">
-        <h3 className="text-center">
-          Please enter your name and pick the Sectors you are currently involved
-          in.
-        </h3>
-        <form
-          onSubmit={(e) => handleSubmit(e)}
-          action=""
-          className="flex flex-col items-center justify-center"
-        >
-          <div className="my-5 flex flex-col xl:w-2/6 lg:w-1/2 md:w-1/2 w-[90%] mx-auto">
-            <label
-              htmlFor="username"
-              className="pb-2 text-sm font-bold text-gray-800 dark:text-gray-100"
-            >
-              Name
-            </label>
-            <input
-              type="text"
-              name="name"
-              required
-              className="border border-gray-300 pl-3 py-3 shadow-sm rounded text-sm focus:outline-none focus:border-indigo-700 bg-transparent placeholder-gray-500 text-gray-500"
-              placeholder="Write your name:"
-            />
+    <>
+      <div className="bg-blue-500 rounded-sm my-3 text-white lg:w-1/2 mx-auto">
+        <div className="flex items-center gap-5 justify-between px-5 py-2">
+          <div>
+            <h3>Name:{userData?.name}</h3>
+            <h3>Sectors:{userData?.sectors}</h3>
+            <small>Time:{userData?.createdTime}</small>
           </div>
+          <div className="flex gap-3">
+            <button onClick={() => setEdit(!edit)}>
+              <FaEdit />
+            </button>
+            <button onClick={() => handleDeleteData(userData?._id)}>
+              <FaTrash />
+            </button>
+          </div>
+        </div>
+      </div>
+      {edit ? (
+        <div className="flex flex-col my-1 gap-2 justify-center">
           <div className=" my-5 flex flex-col xl:w-3/5 lg:w-1/2 md:w-1/2 w-[90%] mx-auto">
             <label
               htmlFor="sectors"
@@ -87,7 +58,7 @@ function App() {
               Sectors
             </label>
             <select
-              onChange={(e) => setSectors(e.target.value)}
+              onChange={(e) => setUpdatedText(e.target.value)}
               required
               name=""
               id=""
@@ -350,32 +321,19 @@ function App() {
               </option>
             </select>
           </div>
-          <div className=" flex mx-auto my-5 xl:w-3/5 lg:w-1/2 md:w-1/2 w-[90%] items-center">
-            <input
-              id="termsConditions"
-              type="checkbox"
-              onClick={() => setAgree(!agree)}
-            />
-            <label
-              className="text-xs text-gray-500 ml-2"
-              htmlFor="termsConditions"
-            >
-              Agree to terms.
-            </label>
-          </div>
           <button
+            onClick={() => handleEdit(userData?._id)}
             type="submit"
-            disabled={!agree}
-            className=" lg:w-1/2 mx-auto flex items-center justify-center bg-blue-600 text-sm font-medium w-[90%] h-10 rounded text-blue-50 hover:bg-blue-700"
+            className="bg-sky-300 rounded-lg px-3 text-gray-700 font-semibold w-1/2 mx-auto"
           >
-            Save
+            Save Data
           </button>
-        </form>
-      </div>
-      <UserData userData={userData} refetch={refetch}/>
-      <Toaster />
-    </div>
+        </div>
+      ) : (
+        ""
+      )}
+    </>
   );
-}
+};
 
-export default App;
+export default SingleData;
